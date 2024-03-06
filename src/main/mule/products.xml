@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="getProducts" doc:id="2d9e790e-8f7c-46dc-b9c1-54fd45e6a755" >
+		<logger level="INFO" doc:name="Logger" doc:id="f8202e1d-586f-4e2f-9ccc-0ccfad6b1835" message="Received GET ALL PRODUCTS request"/>
+		<try doc:name="Try" doc:id="bc1352a0-050e-414b-879a-c6815c7e80b7" >
+			<db:select doc:name="Select" doc:id="2afa7592-4646-41e2-a30f-0fee63e232e3" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM products;]]></db:sql>
+		</db:select>
+		</try>
+		<choice doc:name="Check response is not empty" doc:id="877d23ef-7e8e-4df5-88ae-96f4698a3581">
+				<when expression="#[sizeOf(payload) == 0]">
+					<raise-error doc:name="GON_DB: NO_RECORDS_FOUND_IN_GET_ALL" doc:id="7afe9e4d-7b6f-49a3-889d-3938ca0bdbbf" type="GON_DB: NO_RECORDS_FOUND_IN_GET_ALL" description="Finished GET ALL RECORDS Request WITH ERROR - No records found in the DB" />
+				</when>
+				<otherwise>
+					<logger level="INFO" doc:name="Logger" doc:id="5f5505a7-6fa1-4248-a03e-014f507950d0" message="Finished GET ALL PRODUCTS request successfully" />
+					<ee:transform doc:name="Transform Message" doc:id="2d413706-05b0-4a87-8c75-fd76764c0129">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				</otherwise>
+			</choice>
+		<ee:transform doc:name="Transform Message" doc:id="1ed5ed5a-1ec8-4b1e-aacf-b06233e75e25" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="createProduct" doc:id="73321752-64f1-47e9-8613-04b6dfcd592e" >
+		<set-variable value="#[payload.product_id]" doc:name="Set Variable" doc:id="35b2a5e8-47c3-43ce-9fde-eba7ea43d376" variableName="product_id"/>
+		<logger level="INFO" doc:name="Logger" doc:id="7b84be28-f63b-4dc1-9986-12851d52d077" message="Inserting product item into database: product_id = #[vars.product_id]"/>
+		<try doc:name="Try" doc:id="a4a9f1ef-f0de-4913-a464-8b864e59b6bb" >
+			<db:insert doc:name="Insert" doc:id="6b182743-8d7b-4cc4-af27-1016ec51e253" config-ref="Database_Config">
+			<db:sql><![CDATA[INSERT INTO products (product_name, unit_price, description)
+VALUES (:product_name, :unit_price, :description)]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	product_name: payload.product_name,
+	unit_price: payload.unit_price,
+	description: payload.description
+}]]]></db:input-parameters>
+		</db:insert>
+		</try>
+		<choice doc:name="Check Number of records created &gt; 0" doc:id="b6393ab0-e0fc-4f67-b0fa-3f3ce3ad3f0b" >
+			<when expression="#[payload.affectedRows == 0]">
+				<raise-error doc:name="GON_DB: NO_RECORD_CREATED" doc:id="270e4ca1-4f66-48a9-9f5d-4019ef6275d4" type="GON_DB: NO_RECORD_CREATED" description="Finished CREATE RECORD Request WITH ERROR - No records created"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="fd85db3b-cc7d-47c6-a77a-7b8765f5fe67" message="Finished inserting product item successfully into database: product_id = #[vars.product_id]" />
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	responseStatus: "201",&#10;	responseMessage: "Product successfully created"&#10;}]' doc:name="Set Payload" doc:id="d3224aae-5bcb-4885-84df-6543c88ced1a" />
+				<set-variable value="201" doc:name="Set httpStatus to 201" doc:id="cce12355-368a-4747-888a-1fba9cc516db" variableName="httpStatus"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="getProductById" doc:id="2372a716-a2a3-428b-bc9e-05eed66e8709" >
+		<set-variable value="#[attributes.uriParams.product_id]" doc:name="product_id" doc:id="050e89f6-5294-4993-8aa1-18fe2c26dd62" variableName="product_id"/>
+		<logger level="INFO" doc:name="Logger" doc:id="d1d8ed8b-c180-4232-bc08-eee6cb6f9604" message="Received GET PRODUCT BY ID  request: product_id: #[vars.product_id]"/>
+		<try doc:name="Try" doc:id="9d57d563-f735-4606-8bcf-e7424d275cbc" >
+			<db:select doc:name="Select" doc:id="5138a427-af16-4324-abc9-2075e18c6d74" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM products WHERE product_id = :product_id]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	product_id: attributes.uriParams.product_id}]]]></db:input-parameters>
+		</db:select>
+		</try>
+		<choice doc:name="Check response is not empty" doc:id="56d21dcc-6eae-426d-8c35-11fe612f5c63">
+				<when expression="#[sizeOf(payload) == 0]">
+					<raise-error doc:name="GON_DB: NO_RECORDS_FOUND_IN_GET_BY_ID" doc:id="5aff3bb0-d5f8-45e8-aac2-47f9a3264b09" type="GON_DB: NO_RECORDS_FOUND_IN_GET_BY_ID" description="Finished GET RECORD BY ID request WITH ERROR - No records found in the DB at product_id" />
+				</when>
+				<otherwise>
+					<ee:transform doc:name="Transform Message" doc:id="59e43f25-8480-4de9-838f-464c3903a1ea">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="c6d007e9-a26b-4475-a42e-be37050f088c" message="Finished GET PRODUCT by ID request successfully: product_id: #[vars.product_id]. #[payload]" />
+				</otherwise>
+			</choice>
+	</flow>
+	<flow name="updateProduct" doc:id="bb7f9406-2abf-4cbe-9ac7-b1cbdced6b37" >
+		<set-variable value="#[attributes.uriParams.product_id]" doc:name="product_id" doc:id="af14d02c-5ae7-4f58-97af-487668e0a1e1" variableName="product_id"/>
+		<logger level="INFO" doc:name="Received UPDATE PRODUCT Request" doc:id="36c52da0-fa16-4d7b-852c-f2ce823516cf" message="Received UPDATE PRODUCT Request. product_id: #[vars.product_id]"/>
+		<try doc:name="Try" doc:id="0fe29719-b898-4f9d-a75c-a37da9e1f842" >
+			<db:update doc:name="Update" doc:id="151b2653-ca44-42b2-ab92-8c474f23583f" config-ref="Database_Config">
+			<db:sql><![CDATA[UPDATE products
+SET product_name = :product_name,
+	unit_price = :unit_price,
+	description = :description
+WHERE product_id = :product_id]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	product_id: attributes.uriParams.product_id,
+	product_name: payload.product_name,
+	unit_price: payload.unit_price,
+	description: payload.description
+}]]]></db:input-parameters>
+		</db:update>
+		</try>
+		<choice doc:name="Check Number of records updated &gt; 0" doc:id="0adb8f10-8cbf-4f3c-83aa-a9a260737673" >
+			<when expression="#[payload.affectedRows == 0]">
+				<raise-error doc:name="GON_DB: NO_RECORD_UPDATED" doc:id="5061ed70-5bb5-4ba2-b1ac-3dba83afa7de" type="GON_DB: NO_RECORD_UPDATED" description="Finished UPDATE BY ID Request WITH ERROR - No records found in the DB at record_id"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Finished UPDATE PRODUCT Request" doc:id="d44e41bf-a114-4082-9b8f-af6ea369caa4" message="Finished UPDATE PRODUCT Request successfully. product_id: #[vars.product_id]" />
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"responseStatus": "201",&#10;	"responseMessage": "Product successfully updated at product_id = " ++ vars.product_id as String&#10;}]' doc:name="Set Payload" doc:id="11fc9db3-806a-4988-b23f-0ed6d77e0d41" />
+				<set-variable value="201" doc:name="Set httpStatus to 201" doc:id="9a191f1a-0b08-4aab-8f14-1ed34e780a54" variableName="httpStatus"/>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="deleteProduct" doc:id="6c6bfce8-ca18-48d4-93fd-df8c4c213774" >
+		<set-variable value="#[attributes.uriParams.product_id]" doc:name="product_id" doc:id="4bcc4686-606f-4642-81c2-5de1e1879747" variableName="product_id"/>
+		<logger level="INFO" doc:name="Logger" doc:id="2d6651dd-af29-4da4-99e4-e057a485aee8" message="Received DELETE PRODUCT Request: product_id: #[vars.product_id]"/>
+		<try doc:name="Try" doc:id="802add58-2a08-432b-80fd-6dcef8fcc44c" >
+			<db:delete doc:name="Delete" doc:id="19460122-8c86-40c8-b4f3-aba577c95565" config-ref="Database_Config">
+			<db:sql><![CDATA[DELETE FROM products
+WHERE product_id = :product_id;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	product_id: attributes.uriParams.product_id
+}]]]></db:input-parameters>
+		</db:delete>
+		</try>
+		<choice doc:name="Verify Item exists" doc:id="fa1f278a-556d-449a-970c-7f10c44c79ca">
+			<when expression="#[payload == 1]">
+				<logger level="INFO" doc:name="Logger" doc:id="aebe7be6-f3f4-46c5-9a5c-8eb87330ffbd" message="Finished DELETE PRODUCT Request successfully: product_id: #[vars.product_id]" />
+				<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	"responseStatus": "201",&#10;	"responseMessage": "Product successfully deleted",&#10;	"product_id": vars.product_id&#10;}]' doc:name="Set Payload" doc:id="d6b73891-08f0-4c2a-a672-48d6c0fd4bb4" />
+				<set-variable value="204" doc:name="Set httpStatus to 204" doc:id="cdcb0441-8d32-4704-bbd3-6617d15bc0ac" variableName="httpStatus"/>
+			</when>
+			<otherwise>
+				<raise-error doc:name="GON_DB:DELETE_NO_RECORDS" doc:id="26466d42-2447-4c0d-aac3-305edd7523e6" type="GON_DB:DELETE_NO_RECORDS" description="Item not found in DELETE RECORD by ID Request. Invalid Record ID" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

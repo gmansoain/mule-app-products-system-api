@@ -1,0 +1,20 @@
+#%RAML 1.0 DataType
+type: object
+description: Represents a standard message body to be returned with error responses
+properties:
+  errorCode:
+    type: string
+    description: "Short code to identify the error"
+    example: "INVALID_PARAMETER"
+  errorMessage:
+    type: string
+    description: "Verbose human readable error message"
+    example: "The value you entered is out of bounds"
+  transactionId:
+    type: string
+    description: "Request identifier"
+    example: "dd960082-abbf-47c2-8c65-f18eeb35848b"
+  timeStamp:
+    type: datetime
+    description: "event date time"
+    example: "2019-09-23T11:46:44.256-05:00"

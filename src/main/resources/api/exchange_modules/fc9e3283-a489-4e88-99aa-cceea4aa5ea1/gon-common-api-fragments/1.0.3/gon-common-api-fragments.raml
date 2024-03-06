@@ -1,0 +1,10 @@
+#%RAML 1.0 Library
+usage: Use this library to standardize all Mule Gon API Specs
+
+traits:
+  error-responses: !include traits/ErrorResponsesTrait.raml
+  client-id-required: !include traits/ClientIdRequiredTrait.raml
+  
+types:
+  ErrorResponse: !include datatypes/ErrorResponse.raml
+  

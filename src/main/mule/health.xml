@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	
+	<http:request-config name="HTTP_Request_ServiceNow" doc:name="HTTP Request configuration" doc:id="e7b6b6cb-dc62-413a-a78b-a30f1111dcb7" >
+		<http:request-connection protocol="HTTPS" host="dev25750.service-now.com" />
+	</http:request-config>
+	<flow name="livenessCheck" doc:id="a56e9a14-7f6a-4a7d-869b-267298e0f047" >
+			<http:listener doc:name="Listener" doc:id="293cdefe-a8db-4459-81b4-745a9e056f70" config-ref="HTTP_Listener_config" path="/alive">
+				<http:response statusCode="200" />
+				<http:error-response statusCode="500" >
+					<http:body ><![CDATA[#[DOWN]]]></http:body>
+				</http:error-response>
+			</http:listener>
+			<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;    "status": "OK",&#10;    "apiName": p("api.name") default "",&#10;	"apiVersion": p("api.version") default ""&#10;}]' doc:name="Set Payload" doc:id="fb491233-97ad-4aa2-9703-d9d55e6eb9b4" />
+		</flow>
+		<flow name="readinessCheck">
+			<http:listener config-ref="HTTP_Listener_config" path="/ready">
+			<http:response statusCode="200" />
+			<http:error-response statusCode="500">
+			<http:body><![CDATA[DOWN]]></http:body>
+			</http:error-response>
+			</http:listener>
+			<flow-ref name="check-dependencies" doc:id="15161f81-0ae7-4154-a839-14dcc22177ea" doc:name="check-dependencies"/>
+		<ee:transform doc:name="Map Response" doc:id="ffb70227-913a-4ec9-9737-22ccb8717197" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+fun getDependencyStatus(dependencyResponse) = if(sizeOf(dependencyResponse.status find "UP") == sizeOf(dependencyResponse))
+    "OK"
+else if (sizeOf(dependencyResponse.status find "DOWN") == sizeOf(dependencyResponse))
+    "OFFLINE"
+else
+    "DEGRADED"
+
+output application/json
+---
+{
+    "status": getDependencyStatus(vars.dependencyList),
+    "apiName": p("api.name") default "",
+	"apiVersion": p("api.version") default "",
+    "dependencies": vars.dependencyList map (
+        {
+            "name": $.name,
+            "status": $.status
+        }
+    )
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-variable value="200" doc:name="Set httpStatus to 200" doc:id="c48a1c7e-fcb3-415d-8c1b-824f131782bf" variableName="httpStatus"/>
+		</flow>
+		<sub-flow name="check-dependencies" doc:id="0c6f56cd-b6ae-4f16-9530-3228cdfcb3ad" >
+		<flow-ref doc:name="check dependency DB" doc:id="accf89e7-b11e-4b97-9619-6e400d0fdabf" name="check-dependency-db" />
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;[&#10;	vars.dependencyDB&#10;]]" doc:name="dependencyList" doc:id="9cd4523a-e753-4bd7-addd-91bc16738cd7" variableName="dependencyList"/>
+	</sub-flow>
+		
+		<sub-flow name="check-dependency-db" doc:id="5e73597f-e260-429c-8638-82efc4707fe5">
+		<try doc:name="Try" doc:id="91cdfdd6-de62-469b-b070-21b505763d39" >
+			<db:select doc:name="Select" doc:id="7d6c5314-dc66-4fdc-9b5f-389ab5016055" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT * FROM products WHERE product_id = 1]]></db:sql>
+		</db:select>
+			<choice doc:name="Check Select query returns data" doc:id="fd99ee35-2023-46dd-8439-2942cdcbedaf">
+			<when expression="#[sizeOf(payload) == 0]">
+				<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	name: "Database",&#10;	status: "DOWN"&#10;}]' doc:name="dependencyDB" doc:id="8246ce79-4382-42ed-b22a-814259046f69" variableName="dependencyDB" />
+			</when>
+			<otherwise>
+				<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	name: "Database",&#10;	status: "UP"&#10;}]' doc:name="dependencyDB" doc:id="b7cdedd7-88af-477b-bc98-0094523808d8" variableName="dependencyDB" />
+			</otherwise>
+		</choice>
+			<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="ec4113d8-4401-4dcc-a214-c2126bd08c42" >
+					<set-variable value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;	name: "Database",&#10;	status: "DOWN"&#10;}]' doc:name="dependencyDB" doc:id="985fcda1-0381-44c2-bd45-7e7efa971457" variableName="dependencyDB"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		</sub-flow>
+
+
+</mule>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="webGetProductById" doc:id="a10387d1-8b33-41fe-861c-376cf8242c3e" >
+		<http:listener doc:name="Listener" doc:id="313035b0-dc5f-47d8-bed5-5a9d2ee0c1fe" config-ref="HTTP_Listener_config" path="/web/products/{product_id}" allowedMethods="GET"/>
+		<flow-ref doc:name="Flow Reference" doc:id="b692d1d5-19b1-4ac8-bd17-860aba70c2d2" name="getProductById"/>
+		<parse-template doc:name="Parse Template" doc:id="e1f5f6db-4bd8-41b1-bf7c-baa452181da8" location="web/responseGetProductById.template"/>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="3b6a19f5-04bd-4fcc-90c8-f256063978db" mimeType="text/html"/>
+	</flow>
+	<flow name="webGetAllProducts" doc:id="c1d3d2a9-82a6-4741-88b6-54f0b94a2b09" >
+		<http:listener doc:name="Listener" doc:id="8544f1a4-c7ca-485b-84de-05a51be8c342" config-ref="HTTP_Listener_config" path="/web/products" allowedMethods="GET"/>
+		<flow-ref doc:name="Flow Reference" doc:id="7d0a5a0a-9268-4d87-bef4-748e67016e42" name="getProducts"/>
+		<parse-template doc:name="Parse Template" doc:id="467b484f-3b35-4482-a721-54e57db1aacc" location="web/responseGetAllProducts.template"/>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="04ca9f5b-131f-44cb-8a6f-9a10f41414a5" mimeType="text/html"/>
+	</flow>
+</mule>

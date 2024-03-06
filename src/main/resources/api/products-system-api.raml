@@ -1,0 +1,61 @@
+#%RAML 1.0
+title: Products System API
+version: v1
+mediaType: 
+- application/json
+
+uses:
+  common: /exchange_modules/fc9e3283-a489-4e88-99aa-cceea4aa5ea1/gon-common-api-fragments/1.0.3/gon-common-api-fragments.raml
+
+types:
+  Product: !include exchange_modules/fc9e3283-a489-4e88-99aa-cceea4aa5ea1/online-store-api-fragments/1.0.2/datatypes/Product.raml
+  ProductNoID: !include exchange_modules/fc9e3283-a489-4e88-99aa-cceea4aa5ea1/online-store-api-fragments/1.0.2/datatypes/ProductNoID.raml
+
+/products:
+  get:
+    is: [common.client-id-required, common.error-responses]
+    description: Retrieve a list of products
+    responses:
+      200:
+        body:
+          type: Product[]
+  post:
+    is: [common.client-id-required, common.error-responses]
+    description: Create a new product
+    body:
+      type: ProductNoID
+    responses:
+      201:
+        description: Product created successfully
+
+/products/{product_id}:
+  get:
+    is: [common.client-id-required, common.error-responses]
+    description: Retrieve details of a specific product
+    responses:
+      200:
+        body:
+          type: Product
+
+  put:
+    is: [common.client-id-required, common.error-responses]
+    description: Update details of a specific product
+    body:
+      application/json:
+        example: |
+          {
+            "unit_price": 24.99,
+            "description": "Updated description"
+          }
+    responses:
+      200:
+        description: Product updated successfully
+
+  delete:
+    is: [common.client-id-required, common.error-responses]
+    description: Delete a specific product
+    responses:
+      204:
+        description: Product deleted successfully
+      404:
+        description: Product not found

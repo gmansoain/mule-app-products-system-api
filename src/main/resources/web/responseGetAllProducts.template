@@ -1,0 +1,29 @@
+<html>
+	<head>
+		<h1>Products System API</h1>
+	</head>
+	<body>
+		<table>
+			<thead>
+				<tr>
+					<th>Product ID</th>
+					<th>Description</th>
+					<th>Unit Price</th>
+					<th>Product Name</th>
+				</tr>
+			</thead>
+			<tbody>
+#[%dw 2.0
+output application/java
+---
+payload map (
+    "<tr><td><span>" ++ $.product_id ++ "</span></td>"
+    ++"<td><span>" ++ $.description ++ "</span></td>"
+    ++"<td><span>" ++ $.unit_price ++ "</span></td>"
+        ++"<td><span>" ++ $.product_name ++ "</span></td></tr>"
+)joinBy ""]
+
+			</tbody>
+		</table>
+	</body>
+</html>

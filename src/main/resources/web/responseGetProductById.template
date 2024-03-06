@@ -1,0 +1,25 @@
+<html>
+	<head>
+		<h1>Products System API</h1>
+	</head>
+	<body>
+		<table>
+			<thead>
+				<tr>
+					<th>Product ID</th>
+					<th>Description</th>
+					<th>Unit Price</th>
+					<th>Product Name</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td>#[payload[0].product_id]</td>
+					<td>#[payload[0].description]</td>
+					<td>#[payload[0].unit_price]</td>
+					<td>#[payload[0].product_name]</td>
+				</tr>
+			</tbody>
+		</table>
+	</body>
+</html>

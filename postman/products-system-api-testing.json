@@ -1,0 +1,55 @@
+{
+	"info": {
+		"_postman_id": "75cd5eec-e913-4397-869c-779e3a32dfe6",
+		"name": "GON Products System API Testing",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "3257783",
+		"_collection_link": "https://vidsigneritequia.postman.co/workspace/GON-Mule~3af5d665-c687-4d45-85e6-35c2c50ef956/collection/3257783-75cd5eec-e913-4397-869c-779e3a32dfe6?action=share&source=collection_link&creator=3257783"
+	},
+	"item": [
+		{
+			"name": "Readiness Probe",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://mule-products-system-api-17ekvx.a671fi.gbr-e1.cloudhub.io/alive",
+					"protocol": "https",
+					"host": [
+						"mule-products-system-api-17ekvx",
+						"a671fi",
+						"gbr-e1",
+						"cloudhub",
+						"io"
+					],
+					"path": [
+						"alive"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Liveness Probe",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://mule-products-system-api-17ekvx.a671fi.gbr-e1.cloudhub.io/ready",
+					"protocol": "https",
+					"host": [
+						"mule-products-system-api-17ekvx",
+						"a671fi",
+						"gbr-e1",
+						"cloudhub",
+						"io"
+					],
+					"path": [
+						"ready"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

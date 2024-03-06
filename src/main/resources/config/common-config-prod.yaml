@@ -1,0 +1,14 @@
+errors:
+  api-kit:
+    error-code-400: "GON - BAD REQUEST"
+    error-code-404: "GON - NOT_FOUND"
+    error-code-405: "GON - METHOD_NOT_ALLOWED"
+    error-code-406: "GON - NOT_ACCEPTABLE"
+    error-code-415: "GON - UNSUPPORTED_MEDIA_TYPE"
+    error-code-500: "GON - INTERNAL_SERVER_ERROR"
+    error-code-501: "GON - NOT_IMPLEMENTED"
+  db:
+    error-code-400: "GON - BAD REQUEST - RECORD NOT CREATED"
+    error-code-404: "GON - RECORD NOT_FOUND"
+    error-code-500: "GON - There's an error in the Database Server'"
+  

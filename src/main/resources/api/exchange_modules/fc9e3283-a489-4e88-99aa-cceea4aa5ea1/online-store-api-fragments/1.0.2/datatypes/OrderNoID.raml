@@ -1,0 +1,17 @@
+#%RAML 1.0 DataType
+type: object
+properties:
+  customer_id: string
+  product_id: integer
+  order_date: string
+  quantity: integer
+  total_amount: number
+  status:
+    enum:
+      - Pending
+      - Shipped
+      - Delivered
+examples:
+  ex1: !include ../examples/OrderNoIDExample1.raml
+  ex2: !include ../examples/OrderNoIDExample2.raml
+    
