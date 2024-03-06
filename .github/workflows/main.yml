@@ -1,0 +1,86 @@
+name: Build and Deploy to Dev
+
+on:
+
+# Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build_And_Publish_To_Exchange:
+    runs-on: ubuntu-latest
+    environment: Development
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - name: Set up JDK 1.8
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: 8
+        
+    - name: Build with Maven
+      env:
+        MULE_CLIENT_ID: ${{ secrets.MULE_CLIENT_ID }}
+        MULE_CLIENT_SECRET: ${{ secrets.MULE_CLIENT_SECRET }}
+        MULE_BG_ID: ${{ secrets.MULE_BG_ID}}
+      run: mvn clean -B deploy -s .maven/settings.xml
+
+    - name: Stamp artifact file name with commit hash
+      run: |
+        artifactName1=$(ls target/*.jar | head -1)
+        commitHash=$(git rev-parse --short "$GITHUB_SHA")
+        artifactName2=$(ls target/*.jar | head -1 | sed "s/.jar/-$commitHash.jar/g")
+        mv $artifactName1 $artifactName2
+    - name: Upload artifact 
+      uses: actions/upload-artifact@v3
+      with:
+          name: artifacts
+          path: target/*.jar
+          
+          
+  deploy_To_Dev:
+    needs: build_And_Publish_To_Exchange
+    runs-on: ubuntu-latest
+    environment: Development
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - uses: actions/download-artifact@v3
+      with:
+        name: artifacts
+
+    - name: Deploy to Cloudhub DEV
+      env:
+        MULE_CLIENT_ID: ${{ secrets.MULE_CLIENT_ID }}
+        MULE_CLIENT_SECRET: ${{ secrets.MULE_CLIENT_SECRET }}
+        MULE_BG_ID: ${{ secrets.MULE_BG_ID }}
+        SECURE_KEY: ${{ secrets.SECURE_KEY }}
+        client_id: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_ID }}
+        client_secret: ${{ secrets.ANYPOINT_PLATFORM_CLIENT_SECRET }}
+        api_id: ${{ vars.API_ID }}
+        environment: ${{ vars.ENVIRONMENT }}
+        target: ${{ vars.TARGET }}
+        replicas: ${{ vars.REPLICAS }}
+        cores: ${{ vars.CORES }}
+        api_layer: ${{ vars.API_LAYER }}
+        app_env: ${{ vars.APP_ENV }}
+      run: |
+        artifactName=$(ls *.jar | head -1)
+        mvn clean -B deploy -DmuleDeploy -Dmule.artifact=$artifactName \
+        -s .maven/settings.xml
